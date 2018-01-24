@@ -24,5 +24,20 @@ namespace DAQ_Sim
         {
             InitializeComponent();
         }
+
+        private void btnSample_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void menuHelpAbout_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void menuFileExit_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
