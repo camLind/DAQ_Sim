@@ -23,6 +23,7 @@ namespace DAQ_Sim
         public MainWindow()
         {
             InitializeComponent();
+
         }
 
         private void btnSample_Click(object sender, RoutedEventArgs e)
