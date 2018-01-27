@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Timers;
 
 using System.Data;
 
@@ -23,7 +24,9 @@ namespace DAQ_Sim
     public partial class MainWindow : Window
     {
         DAQSimulator daqSim;
-        DataTable anSamplesTable;
+        TimeSpan sampleUpdatePeriod;
+        Timer timeUpdater;
+        Timer samplingWaiter;
 
         // Main Window function
         public MainWindow()
@@ -31,19 +34,44 @@ namespace DAQ_Sim
             InitializeComponent();
 
             daqSim = new DAQSimulator(5);
-            dataGrid.ItemsSource = daqSim.lastSample;
 
-            doAnalogSampleUpdate();
+            sampleUpdatePeriod = new TimeSpan(0, 0, 5);
+            samplingWaiter = new Timer(sampleUpdatePeriod.TotalMilliseconds);
+            samplingWaiter.Elapsed += SamplingWaiter_Elapsed;
+
+            timeUpdater = new Timer(1000);
+            timeUpdater.Elapsed += TimeUpdater_Elapsed;
+
+            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
+
+            //timeUpdater.Start();
+
+            dataGrid.ItemsSource = daqSim.analogueSensors;
+
+            btnSample.IsEnabled = true;
         }
 
-        private void doAnalogSampleUpdate()
+        private void SamplingWaiter_Elapsed(object sender, ElapsedEventArgs e)
         {
-            daqSim.DoSampleAnalogueSensors();
+            btnSample.IsEnabled = true;
+        }
+
+        private void TimeUpdater_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
         }
 
         private void btnSample_Click(object sender, RoutedEventArgs e)
         {
-            doAnalogSampleUpdate();
+            DateTime timeNow = DateTime.Now;
+
+            tbLastSampleTime.Text = timeNow.ToString("hh:mm:ss.f");
+            tbNextSampleTime.Text = timeNow.Add(sampleUpdatePeriod).ToString("hh:mm:ss.f");
+
+            btnSample.IsEnabled = false;
+            daqSim.DoSampleAnalogueSensors();
+
+            samplingWaiter.Start();
         }
 
         private void menuHelpAbout_Click(object sender, RoutedEventArgs e)

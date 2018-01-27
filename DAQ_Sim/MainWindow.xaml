@@ -41,7 +41,7 @@
                                     ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="Value" IsReadOnly="True" Width="*"/>
             </DataGrid.Columns>
             <DataGrid.DataContext>
-                <local:Sample/>
+                <local:Sensor/>
             </DataGrid.DataContext>
         </DataGrid>
 
