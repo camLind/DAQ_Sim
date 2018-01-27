@@ -13,6 +13,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using System.Data;
+
 namespace DAQ_Sim
 {
     /// <summary>
@@ -20,15 +22,28 @@ namespace DAQ_Sim
     /// </summary>
     public partial class MainWindow : Window
     {
+        DAQSimulator daqSim;
+        DataTable anSamplesTable;
+
+        // Main Window function
         public MainWindow()
         {
             InitializeComponent();
 
+            daqSim = new DAQSimulator(5);
+            dataGrid.ItemsSource = daqSim.lastSample;
+
+            doAnalogSampleUpdate();
+        }
+
+        private void doAnalogSampleUpdate()
+        {
+            daqSim.DoSampleAnalogueSensors();
         }
 
         private void btnSample_Click(object sender, RoutedEventArgs e)
         {
-
+            doAnalogSampleUpdate();
         }
 
         private void menuHelpAbout_Click(object sender, RoutedEventArgs e)
@@ -38,7 +53,7 @@ namespace DAQ_Sim
 
         private void menuFileExit_Click(object sender, RoutedEventArgs e)
         {
-
+            this.Close();
         }
     }
 }

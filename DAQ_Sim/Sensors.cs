@@ -3,15 +3,87 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data;
+using System.ComponentModel;
 
 namespace DAQ_Sim
 {
-    class DAQSimulator
+    public class Sample : INotifyPropertyChanged
+    {
+        private int internID;
+        private double internVal;
+        private string internStr;
+
+        public int id
+        {
+            get
+            {
+                return this.internID;
+            }
+        }
+        public double val
+        {
+            get
+            {
+                return this.internID;
+            }
+            set
+            {
+                if( value != this.internVal )
+                {
+                    this.internVal = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+        public string valStr
+        {
+            get
+            {
+                return this.internStr;
+            }
+            set
+            {
+                if (value != this.internStr)
+                {
+                    this.internStr = value;
+                    NotifyPropertyChanged();
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        public Sample()
+        {
+            internID = 0;
+            internVal = 0;
+            internStr = "none";
+        }
+        public Sample(Sensor s)
+        {
+            internID = s.GetSensId();
+            internVal = s.GetValue(false);
+            internStr = s.GetValueString();
+        }
+
+        private void NotifyPropertyChanged(String propertyName = "")
+        {
+            if( PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+            }
+        }
+    }
+
+    public class DAQSimulator
     {
         private List<AnalogueSensor> analogueSensors;
         private double[] analogueSamples;
         private int numAnalogueDevices;
+
+        public Sample[] lastSample;
         
+        // Default constructor for DAQ Simulator
         public DAQSimulator(int numADevs)
         {
             AnalogueSensor tempSensor;
@@ -21,28 +93,50 @@ namespace DAQ_Sim
             double anSensMax = 10;
             int anSensBits = 10;
 
+            analogueSensors = new List<AnalogueSensor>();
             analogueSamples = new double[numADevs];
+
+            lastSample = new Sample[numADevs];
 
             for( int i=0; i<numAnalogueDevices; i++ )
             {
                 tempSensor = new AnalogueSensor(i, anSensMin, anSensMax, anSensBits);
+
                 analogueSensors.Add(tempSensor);
+
+                lastSample[i] = new Sample(tempSensor);
             }
         }
 
-        public double[] SampleAnalogueSensors()
+        // SampleAnalogueSensors: Simulate sampling operation of all sensors
+        public void DoSampleAnalogueSensors()
         {
             int i = 0;
             foreach(AnalogueSensor s in analogueSensors)
             {
-                analogueSamples[i] = s.GetValue();
+                analogueSamples[i] = s.GetValue(true);
+
+                lastSample[i].val = s.GetValue(false);
+                lastSample[i].valStr = s.GetValueString();
+
                 i++;
             }
-
-            return analogueSamples;
         }
 
-        public double[] GetLast
+        // GetLastSamples: Return the values of the last analogue samples
+        public double[] GetLastSamples() { return analogueSamples; }
+
+        public string[][] AnalogueSamplesStrings()
+        {
+            string[][] retData = new string[numAnalogueDevices][];
+
+            for (int i = 0; i < numAnalogueDevices; i++)
+            {
+                retData[i] = analogueSensors[i].GetIDValuePair();
+            }
+
+            return retData;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -56,7 +150,7 @@ namespace DAQ_Sim
     // Initially based on the example given in the assignment description
     // provided by Nils-Olav: C# coding Assignment Version 1.1 (B): Jan 8, 2018
     //
-    class Sensor
+    public class Sensor
     {
         // TODO move min, max numbits to analogue class
         // sensor class parameters
@@ -84,6 +178,7 @@ namespace DAQ_Sim
 
         // Methods
 
+        // InitializeSensor()
         // Initialize sensor parameters that are general to
         // the class and called by each constructor
         private void InitializeSensor()
@@ -92,23 +187,46 @@ namespace DAQ_Sim
             this.dVal = 0.0F;
         }
 
+        // GetSensId()
         // Return the ID of the sensor
         public int GetSensId() { return sId; }
 
+        // IsOff()
         // Return if the sensor is "OFF". This means that
         // the simulated value is equal to 0V
         public bool IsOff() { return dVal == 0.0F; }
 
+        // GetValue()
         // Return the current value of the sensor
-        public virtual double GetValue()
+        public virtual double GetValue(bool newSample=false)
         {
             return dVal;
         }
 
+        // GetValueString
+        // Return the value of the sensor as a string (default)
         public virtual String GetValueString() { return dVal.ToString(); }
+
+        // Get id string pair
+        public string[] GetIDValuePair()
+        {
+            string[] pair = new string[2];
+
+            pair[0] = sId.ToString();
+            pair[1] = this.GetValueString();
+
+            return pair;
+        }
+
+        public Sample GetLastSample()
+        {
+            Sample retVal = new Sample(this);
+
+            return retVal;
+        }
     }
 
-    class AnalogueSensor : Sensor
+    public class AnalogueSensor : Sensor
     {
         private double minVal;
         private double maxVal;
@@ -127,6 +245,8 @@ namespace DAQ_Sim
             //movAvgFilter = new MAFilter();
         }
 
+        // Constructor allowing for customized initialization
+        // of parameters for the sensor
         public AnalogueSensor(int id, double min, double max, int bits) :
             base(id)
         {
@@ -135,17 +255,24 @@ namespace DAQ_Sim
             numBits = bits;
         }
 
-        public override double GetValue()
+        // GetValue()
+        // Simulate a new sensor value and return this
+        public override double GetValue(bool newSample = false)
         {
-            dVal = rSenVal.NextDouble() * (maxVal - minVal) + minVal;
-            // TODO try to use numBits to define resolution (rounding then should allow for definition of boolean logic)
-            // TODO: modify resolution (modulo operator?)
+            if( newSample )
+            {
+                dVal = rSenVal.NextDouble() * (maxVal - minVal) + minVal;
+                // TODO try to use numBits to define resolution (rounding then should allow for definition of boolean logic)
+                // TODO: modify resolution (modulo operator?)
 
-            // TODO: filter values
+                // TODO: filter values
+            }
 
             return dVal;
         }
 
+        // GetValueString()
+        // Return the value as a string
         public override String GetValueString()
         {
             return dVal.ToString("F3");     // TODO: what does F3 do?

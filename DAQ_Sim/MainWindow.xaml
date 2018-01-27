@@ -5,19 +5,19 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DAQ_Sim"
         mc:Ignorable="d"
-        Title="DAQ Simulator" Height="390.196" Width="650">
+        Title="DAQ Simulator" Height="460.147" Width="650">
     <Grid Margin="0,0,2,0">
         <Button x:Name="btnSample" Content="Sample Now" HorizontalAlignment="Left" Margin="20,78,0,0" VerticalAlignment="Top" Width="100" Click="btnSample_Click"/>
         <Button x:Name="btnLog" Content="Log Now" HorizontalAlignment="Left" Margin="20,114,0,0" VerticalAlignment="Top" Width="100"/>
-        <TextBox x:Name="tbNextSampleTime" HorizontalAlignment="Left" Height="20" Margin="524,79,0,0" TextWrapping="Wrap" Text="Not Set" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False" TextChanged="tbNextSampleTime_TextChanged"/>
+        <TextBox x:Name="tbNextSampleTime" HorizontalAlignment="Left" Height="20" Margin="524,79,0,0" TextWrapping="Wrap" Text="Not Set" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
         <TextBox x:Name="tbNextLogTime" HorizontalAlignment="Left" Height="20" Margin="524,115,0,0" TextWrapping="Wrap" Text="Not Set" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
         <TextBox x:Name="tbTimeNow" HorizontalAlignment="Left" Height="20" Margin="524,37,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
         <Label x:Name="labelTimeNow" Content="Time now:" HorizontalAlignment="Left" Margin="425,33,0,0" VerticalAlignment="Top" Height="28"/>
         <Label x:Name="labelNextSampleTime" Content="Next sample:" HorizontalAlignment="Left" Margin="425,75,0,0" VerticalAlignment="Top" Height="28"/>
         <Label x:Name="labelNextLogTime" Content="Next log entry:" HorizontalAlignment="Left" Margin="425,111,0,0" VerticalAlignment="Top" Height="28"/>
-        <TextBox x:Name="tbLastSampleTime" HorizontalAlignment="Left" Height="20" Margin="267,78,0,0" TextWrapping="Wrap" Text="None" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
+        <TextBox x:Name="tbLastSampleTime" HorizontalAlignment="Left" Height="20" Margin="138,238,0,0" TextWrapping="Wrap" Text="None" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
         <TextBox x:Name="tbLastLogTime" HorizontalAlignment="Left" Height="20" Margin="267,115,0,0" TextWrapping="Wrap" Text="None" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False"/>
-        <Label x:Name="labelLastSample" Content="Last sample:" HorizontalAlignment="Left" Margin="168,74,0,0" VerticalAlignment="Top" Height="28"/>
+        <Label x:Name="labelLastSample" Content="Last sample:" HorizontalAlignment="Left" Margin="20,234,0,0" VerticalAlignment="Top" Height="28" Width="100"/>
         <Label x:Name="labelLastLog" Content="Last log entry:" HorizontalAlignment="Left" Margin="168,111,0,0" VerticalAlignment="Top" Height="28"/>
         <TextBox x:Name="tbLogPath" HorizontalAlignment="Left" Height="23" Margin="168,167,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="454" IsEnabled="False"/>
         <Label x:Name="labelLogPath" Content="Log file path" HorizontalAlignment="Left" Margin="20,163,0,0" VerticalAlignment="Top" Height="28"/>
@@ -30,11 +30,20 @@
             </MenuItem>
         </Menu>
         <Separator HorizontalAlignment="Left" Height="25" Margin="20,204,0,0" VerticalAlignment="Top" Width="602"/>
-        <DataGrid x:Name="dataGridAnalogueSamples" HorizontalAlignment="Left" Margin="138,234,0,0" VerticalAlignment="Top" Height="115" Width="150"/>
-        <DataGrid x:Name="dataGridDigitalSamples" HorizontalAlignment="Left" Margin="472,234,0,0" VerticalAlignment="Top" Height="115" Width="150"/>
-        <Label x:Name="labelAnalogueValues" Content="Analogue sensors:" HorizontalAlignment="Left" Margin="20,234,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="113"/>
-        <Label x:Name="labelDigitalValues" Content="Digital sensors:" HorizontalAlignment="Left" Margin="375,234,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="92"/>
+        <Label x:Name="labelAnalogueValues" Content="Analogue sensors:" HorizontalAlignment="Left" Margin="20,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="113"/>
+        <Label x:Name="labelDigitalValues" Content="Digital sensors:" HorizontalAlignment="Left" Margin="375,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="92"/>
         <Label x:Name="label" Content="DAQ Simulator" HorizontalAlignment="Left" Margin="20,32,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="14"/>
+        <DataGrid x:Name="dataGrid" HorizontalAlignment="Left" Margin="138,286,0,0" VerticalAlignment="Top" Height="115" Width="173" RowHeight="20" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding id, BindsDirectlyToSource=True, Mode=OneWay, StringFormat=\{0:X3\}, TargetNullValue=-, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}"
+                                    ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="ID" IsReadOnly="True" Width="50"/>
+                <DataGridTextColumn Binding="{Binding valStr, BindsDirectlyToSource=True, Mode=OneWay,  TargetNullValue=-, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}"
+                                    ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="Value" IsReadOnly="True" Width="*"/>
+            </DataGrid.Columns>
+            <DataGrid.DataContext>
+                <local:Sample/>
+            </DataGrid.DataContext>
+        </DataGrid>
 
     </Grid>
 </Window>
