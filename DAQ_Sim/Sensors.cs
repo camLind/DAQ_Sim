@@ -122,21 +122,6 @@ namespace DAQ_Sim
                 i++;
             }
         }
-
-        // GetLastSamples: Return the values of the last analogue samples
-        public double[] GetLastSamples() { return analogueSamples; }
-
-        public string[][] AnalogueSamplesStrings()
-        {
-            string[][] retData = new string[numAnalogueDevices][];
-
-            for (int i = 0; i < numAnalogueDevices; i++)
-            {
-                retData[i] = analogueSensors[i].GetIDValuePair();
-            }
-
-            return retData;
-        }
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -206,24 +191,6 @@ namespace DAQ_Sim
         // GetValueString
         // Return the value of the sensor as a string (default)
         public virtual String GetValueString() { return dVal.ToString(); }
-
-        // Get id string pair
-        public string[] GetIDValuePair()
-        {
-            string[] pair = new string[2];
-
-            pair[0] = sId.ToString();
-            pair[1] = this.GetValueString();
-
-            return pair;
-        }
-
-        public Sample GetLastSample()
-        {
-            Sample retVal = new Sample(this);
-
-            return retVal;
-        }
     }
 
     public class AnalogueSensor : Sensor
