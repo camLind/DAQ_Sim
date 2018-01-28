@@ -30,15 +30,26 @@
             </MenuItem>
         </Menu>
         <Separator HorizontalAlignment="Left" Height="25" Margin="20,204,0,0" VerticalAlignment="Top" Width="602"/>
-        <Label x:Name="labelAnalogueValues" Content="Analogue sensors:" HorizontalAlignment="Left" Margin="20,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="113"/>
-        <Label x:Name="labelDigitalValues" Content="Digital sensors:" HorizontalAlignment="Left" Margin="375,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="92"/>
+        <Label x:Name="labelAnalogueValues" Content="Analogue sensors:" HorizontalAlignment="Left" Margin="139,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="113"/>
+        <Label x:Name="labelDigitalValues" Content="Digital sensors:" HorizontalAlignment="Left" Margin="451,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.457,-0.595" Width="92"/>
         <Label x:Name="label" Content="DAQ Simulator" HorizontalAlignment="Left" Margin="20,32,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="14"/>
-        <DataGrid x:Name="dataGrid" HorizontalAlignment="Left" Margin="138,286,0,0" VerticalAlignment="Top" Height="171" Width="173" RowHeight="20" AutoGenerateColumns="False">
+        <DataGrid x:Name="dgAnalogueSamples" HorizontalAlignment="Left" Margin="138,319,0,0" VerticalAlignment="Top" Height="138" Width="173" RowHeight="20" AutoGenerateColumns="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding id, BindsDirectlyToSource=True, Mode=OneWay, StringFormat=\{0:X3\}, TargetNullValue=-, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}"
+                <DataGridTextColumn Binding="{Binding id, BindsDirectlyToSource=True, Mode=OneWay, NotifyOnSourceUpdated=True, StringFormat=\{0:G3\}, TargetNullValue=-}"
                                     ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="ID" IsReadOnly="True" Width="50"/>
                 <DataGridTextColumn Binding="{Binding valStr, BindsDirectlyToSource=True, Mode=OneWay,  TargetNullValue=-, NotifyOnSourceUpdated=True, UpdateSourceTrigger=PropertyChanged}"
                                     ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="Value" IsReadOnly="True" Width="*"/>
+            </DataGrid.Columns>
+            <DataGrid.DataContext>
+                <local:Sensor/>
+            </DataGrid.DataContext>
+        </DataGrid>
+        <DataGrid x:Name="dgDigitalSamples" HorizontalAlignment="Left" Margin="451,319,0,0" VerticalAlignment="Top" Height="138" Width="173" RowHeight="20" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding id, BindsDirectlyToSource=True, Mode=OneWay, NotifyOnSourceUpdated=True, StringFormat=\{0:G3\}, TargetNullValue=-}"
+                    ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="ID" IsReadOnly="True" Width="50"/>
+                <DataGridTextColumn Binding="{Binding valStr, BindsDirectlyToSource=True, Mode=OneWay, NotifyOnSourceUpdated=True, TargetNullValue=-, UpdateSourceTrigger=PropertyChanged}"
+                    ClipboardContentBinding="{x:Null}" CanUserSort="False" CanUserReorder="False" CanUserResize="False" Header="Value" IsReadOnly="True" Width="*"/>
             </DataGrid.Columns>
             <DataGrid.DataContext>
                 <local:Sensor/>

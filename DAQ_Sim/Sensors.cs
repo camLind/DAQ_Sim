@@ -85,15 +85,18 @@ namespace DAQ_Sim
         }
     }
 
+    // Class DAQSimulator
     public class DAQSimulator
     {
         public List<AnalogueSensor> analogueSensors { get; private set; }
+        public List<DigitalSensor> digitalSensors { get; private set; }
+
         private int numAnalogueDevices;
+        private int numDigitalDevices;
         
         // Default constructor for DAQ Simulator
-        public DAQSimulator(int numADevs)
+        public DAQSimulator(int numADevs, int numDDevs)
         {
-            AnalogueSensor tempSensor;
             numAnalogueDevices = numADevs;
 
             double anSensMin = 0;
@@ -103,20 +106,24 @@ namespace DAQ_Sim
             analogueSensors = new List<AnalogueSensor>();
             
             for( int i=0; i<numAnalogueDevices; i++ )
-            {
-                tempSensor = new AnalogueSensor(i, anSensMin, anSensMax, anSensBits);
-                analogueSensors.Add(tempSensor);
-            }
+                analogueSensors.Add(new AnalogueSensor(i, anSensMin, anSensMax, anSensBits));
+
+            numDigitalDevices = numDDevs;
+            digitalSensors = new List<DigitalSensor>();
+            for ( int i=0; i<numDigitalDevices; i++)
+                digitalSensors.Add(new DigitalSensor(i + 20));
         }
 
         // SampleAnalogueSensors: Simulate sampling operation of all sensors
         public void DoSampleAnalogueSensors()
         {
             foreach(AnalogueSensor sensor in analogueSensors)
-            {
                 sensor.DoSampling();
-            }
+
+            foreach(DigitalSensor sensor in digitalSensors)
+                sensor.DoSampling();
         }
+
     }
 
     //////////////////////////////////////////////////////////////////////////
@@ -223,7 +230,6 @@ namespace DAQ_Sim
         private double minVal;
         private double maxVal;
         private int numBits;
-        // TODO:MAFilter movAvgFilter;
 
         // Constructor allowing for customized initialization
         // of parameters for the sensor
@@ -235,19 +241,15 @@ namespace DAQ_Sim
             minVal = min;
             maxVal = max;
             numBits = bits;
-
-            //movAvgFilter = new MAFilter();
         }
 
-        // GetValue()
+        // DoSampling()
         // Simulate a new sensor value and return this
         public override void DoSampling()
         {
             double newVal = rSenVal.NextDouble() * (maxVal - minVal) + minVal;
             // TODO try to use numBits to define resolution (rounding then should allow for definition of boolean logic)
             // TODO: modify resolution (modulo operator?)
-
-            // TODO: filter values
 
             this.value = newVal;
         }
@@ -257,6 +259,32 @@ namespace DAQ_Sim
         protected override String GetValueString()
         {
             return this.value.ToString("F3");     // TODO: what does F3 do?
+        }
+    }
+
+    public class DigitalSensor : Sensor
+    {
+        private const string tString = "ON";
+        private const string fString = "OFF";
+
+        public DigitalSensor(int id=0) : base(id)
+        {
+            this.value = 0;
+        }
+
+        // DoSampling()
+        // Simulate a new sensor value and return this
+        public override void DoSampling()
+        {
+            double newVal = rSenVal.NextDouble() < 0.5F ? 0.0F:1.0F;
+            this.value = newVal;
+        }
+
+        // GetValueString()
+        // Return the value as a string
+        protected override String GetValueString()
+        {
+            return this.value != 0.0F ? tString:fString;
         }
     }
 }

@@ -24,9 +24,9 @@ namespace DAQ_Sim
     public partial class MainWindow : Window
     {
         DAQSimulator daqSim;
+
         TimeSpan sampleUpdatePeriod;
         DispatcherTimer timeUpdater;
-
         ActionWaiter myTimer;
 
         // Main Window function
@@ -34,7 +34,7 @@ namespace DAQ_Sim
         {
             InitializeComponent();
 
-            daqSim = new DAQSimulator(5);
+            daqSim = new DAQSimulator(5,3);
 
             sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
 
@@ -50,7 +50,8 @@ namespace DAQ_Sim
             myTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
             myTimer.Go();
 
-            dataGrid.ItemsSource = daqSim.analogueSensors;
+            dgAnalogueSamples.ItemsSource = daqSim.analogueSensors;
+            dgDigitalSamples.ItemsSource = daqSim.digitalSensors;
 
             PerformSample();
         }
