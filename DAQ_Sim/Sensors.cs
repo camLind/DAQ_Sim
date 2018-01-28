@@ -1,19 +1,94 @@
-﻿using System;
+﻿# define ConsoleOutput
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data;
 using System.ComponentModel;
+using System.Threading;
 
 namespace DAQ_Sim
 {
+    // Class ActionWaiter
+    // Used as an interval timer to raise an event after a preset period
+    // of time has elapsed. The timer is restarted using the Go() command
+    public class ActionWaiter
+    {
+        private int waitTime;
+        private Thread myThread;
+        private AutoResetEvent waitToStart;
+        private bool runMe;
+
+        public event EventHandler Ready;
+
+        // Constructor
+        public ActionWaiter(TimeSpan newWaitTime)
+        {
+            runMe = true;
+
+            waitToStart = new AutoResetEvent(false);
+            waitTime = (int)newWaitTime.TotalMilliseconds;
+            myThread = new Thread(new ThreadStart(this.executeMe));
+            myThread.Start();
+        }
+
+        // Timer implementation
+        // This is done in a separate thread and uses the Sleep function.
+        private void executeMe()
+        {
+            try
+            {
+                while (runMe)
+                {
+#if ConsoleOutput
+                    Console.WriteLine("Timer started: " + DateTime.Now.ToLongTimeString());
+#endif
+                    // wait for elapsed time
+                    Thread.Sleep(waitTime);
+#if ConsoleOutput
+                    Console.WriteLine("Timer ticked: " + DateTime.Now.ToLongTimeString());
+#endif
+                    OnReadySet(new EventArgs());
+
+                    waitToStart.WaitOne();
+                }
+            } catch (ThreadInterruptedException e)
+            {
+                Console.WriteLine("Sample timer interrupted.");
+            }
+        }
+
+        // Initiate the next interval countdown
+        public void Go()
+        {
+            waitToStart.Set();
+        }
+
+        // Stop the timer, closing the associated thread
+        public void Stop()
+        {
+            runMe = false;
+            waitToStart.Set();
+            if( myThread.ThreadState == ThreadState.WaitSleepJoin)
+                myThread.Interrupt();
+        }
+
+        // Raise flag ready event.
+        private void OnReadySet(EventArgs e)
+        {
+            if (Ready != null)
+            {
+                Ready(this, e);
+            }
+        }
+    }
+
     public class DAQSimulator
     {
         public List<AnalogueSensor> analogueSensors { get; private set; }
         private int numAnalogueDevices;
-
-        //public Sample[] lastSample;
         
         // Default constructor for DAQ Simulator
         public DAQSimulator(int numADevs)

@@ -12,7 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using System.Timers;
+using System.Windows.Threading;
 
 using System.Data;
 
@@ -25,8 +25,9 @@ namespace DAQ_Sim
     {
         DAQSimulator daqSim;
         TimeSpan sampleUpdatePeriod;
-        Timer timeUpdater;
-        Timer samplingWaiter;
+        DispatcherTimer timeUpdater;
+
+        ActionWaiter myTimer;
 
         // Main Window function
         public MainWindow()
@@ -35,33 +36,43 @@ namespace DAQ_Sim
 
             daqSim = new DAQSimulator(5);
 
-            sampleUpdatePeriod = new TimeSpan(0, 0, 5);
-            samplingWaiter = new Timer(sampleUpdatePeriod.TotalMilliseconds);
-            samplingWaiter.Elapsed += SamplingWaiter_Elapsed;
+            sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
 
-            timeUpdater = new Timer(1000);
-            timeUpdater.Elapsed += TimeUpdater_Elapsed;
+            timeUpdater = new DispatcherTimer();
+            timeUpdater.Interval = new TimeSpan(0, 0, 0, 0, 200);
+            timeUpdater.Tick += new EventHandler(TimeUpdater_Elapsed);
 
             tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
+            
+            timeUpdater.Start();
 
-            //timeUpdater.Start();
+            myTimer = new ActionWaiter(sampleUpdatePeriod);
+            myTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
+            myTimer.Go();
 
             dataGrid.ItemsSource = daqSim.analogueSensors;
 
-            btnSample.IsEnabled = true;
+            PerformSample();
         }
-
-        private void SamplingWaiter_Elapsed(object sender, ElapsedEventArgs e)
+        
+        private void SamplingWaiter_Elapsed(object sender, EventArgs e)
         {
-            btnSample.IsEnabled = true;
+            EnableSampleButton();
         }
 
-        private void TimeUpdater_Elapsed(object sender, ElapsedEventArgs e)
+        public delegate void DelegateEnableSampleButton();
+        private void EnableSampleButton()
         {
-            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
+            if( Dispatcher.CheckAccess() )
+            {
+                btnSample.IsEnabled = true;
+            } else
+            {
+                Dispatcher.Invoke(new DelegateEnableSampleButton(EnableSampleButton),null);
+            }           
         }
 
-        private void btnSample_Click(object sender, RoutedEventArgs e)
+        private void PerformSample()
         {
             DateTime timeNow = DateTime.Now;
 
@@ -71,7 +82,18 @@ namespace DAQ_Sim
             btnSample.IsEnabled = false;
             daqSim.DoSampleAnalogueSensors();
 
-            samplingWaiter.Start();
+            // samplingWaiter.Start();
+            myTimer.Go();
+        }
+
+        private void TimeUpdater_Elapsed(object sender, EventArgs e)
+        {
+            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
+        }
+
+        private void btnSample_Click(object sender, RoutedEventArgs e)
+        {
+            PerformSample();
         }
 
         private void menuHelpAbout_Click(object sender, RoutedEventArgs e)
@@ -82,6 +104,7 @@ namespace DAQ_Sim
         private void menuFileExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
+            myTimer.Stop();
         }
     }
 }
