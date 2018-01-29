@@ -43,6 +43,7 @@ namespace DAQ_Sim
             logToFile = new DataLog(',');
 
             sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
+            logUpdatePeriod = new TimeSpan(0, 0, 0, 10, 0);
 
             timeUpdater = new DispatcherTimer();
             timeUpdater.Interval = new TimeSpan(0, 0, 0, 0, 200);
@@ -104,6 +105,11 @@ namespace DAQ_Sim
 
         private void PerformLogWrite()
         {
+            DateTime timeNow = DateTime.Now;
+
+            tbLastLogTime.Text = timeNow.ToString("hh:mm:ss.f");
+            tbNextLogTime.Text = timeNow.Add(logUpdatePeriod).ToString("hh:mm:ss.f");
+
             btnLog.IsEnabled = false;
 
             foreach (Sensor s in daqSim.analogueSensors)
@@ -143,6 +149,10 @@ namespace DAQ_Sim
         private void menuFileExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
             samplingTimer.Stop();
             loggingTimer.Stop();
         }

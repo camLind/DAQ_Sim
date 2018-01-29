@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DAQ_Sim"
         mc:Ignorable="d"
-        Title="DAQ Simulator" Height="498.168" Width="650">
+        Title="DAQ Simulator" Height="498.168" Width="650" Closing="Window_Closing">
     <Grid Margin="0,0,2,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="537*"/>
