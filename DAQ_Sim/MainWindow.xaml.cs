@@ -13,7 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-
+using DataLogging;
 using System.Data;
 
 namespace DAQ_Sim
@@ -27,7 +27,12 @@ namespace DAQ_Sim
 
         TimeSpan sampleUpdatePeriod;
         DispatcherTimer timeUpdater;
-        ActionWaiter myTimer;
+        ActionWaiter samplingTimer;
+
+        TimeSpan logUpdatePeriod;
+        ActionWaiter loggingTimer;
+
+        DataLog logToFile;
 
         // Main Window function
         public MainWindow()
@@ -35,6 +40,7 @@ namespace DAQ_Sim
             InitializeComponent();
 
             daqSim = new DAQSimulator(5,3);
+            logToFile = new DataLog(',');
 
             sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
 
@@ -46,30 +52,40 @@ namespace DAQ_Sim
             
             timeUpdater.Start();
 
-            myTimer = new ActionWaiter(sampleUpdatePeriod);
-            myTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
-            myTimer.Go();
+            samplingTimer = new ActionWaiter(sampleUpdatePeriod);
+            samplingTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
+            samplingTimer.Go();
+
+            loggingTimer = new ActionWaiter(logUpdatePeriod);
+            loggingTimer.Ready += new EventHandler(LoggingTimer_Elapsed);
+            loggingTimer.Go();
 
             dgAnalogueSamples.ItemsSource = daqSim.analogueSensors;
             dgDigitalSamples.ItemsSource = daqSim.digitalSensors;
 
             PerformSample();
+            PerformLogWrite();
         }
         
         private void SamplingWaiter_Elapsed(object sender, EventArgs e)
         {
-            EnableSampleButton();
+            EnableControl(btnSample);
         }
 
-        public delegate void DelegateEnableSampleButton();
-        private void EnableSampleButton()
+        private void LoggingTimer_Elapsed(object sender, EventArgs e)
+        {
+            EnableControl(btnLog);
+        }
+
+        public delegate void DelegateEnableControl(Control ctl);
+        private void EnableControl(Control ctl)
         {
             if( Dispatcher.CheckAccess() )
             {
-                btnSample.IsEnabled = true;
+                ctl.IsEnabled = true;
             } else
             {
-                Dispatcher.Invoke(new DelegateEnableSampleButton(EnableSampleButton),null);
+                Dispatcher.Invoke(new DelegateEnableControl(EnableControl),ctl);
             }           
         }
 
@@ -83,8 +99,25 @@ namespace DAQ_Sim
             btnSample.IsEnabled = false;
             daqSim.DoSampleAnalogueSensors();
 
-            // samplingWaiter.Start();
-            myTimer.Go();
+            samplingTimer.Go();
+        }
+
+        private void PerformLogWrite()
+        {
+            btnLog.IsEnabled = false;
+
+            foreach (Sensor s in daqSim.analogueSensors)
+                logToFile.BufferEntry(s.valStr);
+
+            foreach (Sensor s in daqSim.digitalSensors)
+                logToFile.BufferEntry(s.valStr);
+
+            if( logToFile.WriteEntry() )
+                // update number entries
+                // else
+                // indicate error
+            
+            loggingTimer.Go();
         }
 
         private void TimeUpdater_Elapsed(object sender, EventArgs e)
@@ -97,6 +130,11 @@ namespace DAQ_Sim
             PerformSample();
         }
 
+        private void btnLog_Click(object sender, RoutedEventArgs e)
+        {
+            PerformLogWrite();
+        }
+
         private void menuHelpAbout_Click(object sender, RoutedEventArgs e)
         {
 
@@ -105,7 +143,8 @@ namespace DAQ_Sim
         private void menuFileExit_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
-            myTimer.Stop();
+            samplingTimer.Stop();
+            loggingTimer.Stop();
         }
     }
 }

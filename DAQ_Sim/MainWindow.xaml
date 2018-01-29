@@ -12,7 +12,7 @@
             <ColumnDefinition Width="103*"/>
         </Grid.ColumnDefinitions>
         <Button x:Name="btnSample" Content="Sample Now" HorizontalAlignment="Left" Margin="20,78,0,0" VerticalAlignment="Top" Width="100" Click="btnSample_Click"/>
-        <Button x:Name="btnLog" Content="Log Now" HorizontalAlignment="Left" Margin="20,114,0,0" VerticalAlignment="Top" Width="100"/>
+        <Button x:Name="btnLog" Content="Log Now" HorizontalAlignment="Left" Margin="20,114,0,0" VerticalAlignment="Top" Width="100" Click="btnLog_Click"/>
         <TextBox x:Name="tbNextSampleTime" HorizontalAlignment="Left" Height="20" Margin="524,79,0,0" Text="Not Set" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False" IsUndoEnabled="False" IsTabStop="False" Focusable="False" AllowDrop="False" Grid.ColumnSpan="2"/>
         <TextBox x:Name="tbNextLogTime" HorizontalAlignment="Left" Height="20" Margin="524,115,0,0" TextWrapping="Wrap" Text="Not Set" VerticalAlignment="Top" Width="100" TextAlignment="Center" IsEnabled="False" IsTabStop="False" IsHitTestVisible="False" IsUndoEnabled="False" Focusable="False" Grid.ColumnSpan="2"/>
         <TextBox x:Name="tbTimeNow" Height="20" Margin="524,37,16,0" Text="TextBox" VerticalAlignment="Top" TextAlignment="Center" IsEnabled="False" IsUndoEnabled="False" Focusable="False" AllowDrop="False" Grid.ColumnSpan="2"/>
