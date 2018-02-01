@@ -39,10 +39,10 @@ namespace DAQ_Sim
         {
             InitializeComponent();
 
-            daqSim = new DAQSimulator(5,3);
+            daqSim = new DAQSimulator(5,5);
             logToFile = new DataLog(',');
 
-            sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
+            sampleUpdatePeriod = new TimeSpan(0, 0, 0, 1, 00);
             logUpdatePeriod = new TimeSpan(0, 0, 0, 10, 0);
 
             timeUpdater = new DispatcherTimer();
@@ -98,7 +98,7 @@ namespace DAQ_Sim
             tbNextSampleTime.Text = timeNow.Add(sampleUpdatePeriod).ToString("hh:mm:ss.f");
 
             btnSample.IsEnabled = false;
-            daqSim.DoSampleAnalogueSensors();
+            daqSim.DoSampleSensors();
 
             samplingTimer.Go();
         }

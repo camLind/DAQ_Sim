@@ -99,8 +99,8 @@ namespace DAQ_Sim
         {
             numAnalogueDevices = numADevs;
 
-            double anSensMin = 0;
-            double anSensMax = 10;
+            double anSensMin = -1;
+            double anSensMax = 1;
             int anSensBits = 10;
 
             analogueSensors = new List<AnalogueSensor>();
@@ -114,8 +114,8 @@ namespace DAQ_Sim
                 digitalSensors.Add(new DigitalSensor(i + 20));
         }
 
-        // SampleAnalogueSensors: Simulate sampling operation of all sensors
-        public void DoSampleAnalogueSensors()
+        // SampleSensors: Simulate sampling operation of all sensors
+        public void DoSampleSensors()
         {
             foreach(AnalogueSensor sensor in analogueSensors)
                 sensor.DoSampling();
@@ -129,21 +129,29 @@ namespace DAQ_Sim
     //////////////////////////////////////////////////////////////////////////
     // Sensor Class
     // By: Cameron Lindberg
-    // Version: 1.1
+    // Version: 2.0
     // Last Update: 2018-02-25
     //
-    // Provide framework for functionality of sensors to be simulated
+    // Version 2.0:
+    // - Implement bit resolution and integer data storage
+    //   instead of using floating point numbers
+    // - It is intended that this will work with booleans as well (bitness = 0)
+    //
+    // Version 1.1:
+    // - Provide basic framework for functionality of sensors to be simulated
     //
     // Initially based on the example given in the assignment description
     // provided by Nils-Olav: C# coding Assignment Version 1.1 (B): Jan 8, 2018
     //
     public class Sensor : INotifyPropertyChanged
     {
-        // TODO move min, max numbits to analogue class
         // sensor class parameters
         private int sId;
-        private double dVal;
-        protected Random rSenVal;
+        private Random rSenVal;
+
+        protected int intVal;
+        protected int numBits;
+        protected int maxIntVal;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -161,19 +169,27 @@ namespace DAQ_Sim
         // Provides value read
         // Setting the internal value via this property initiates
         // the event that the sensor has changed.
-        public double value
+        public int value
         {
             get
             {
-                return this.dVal;
+                return intVal;
             }
             protected set
             {
-                if (value != this.dVal)
+                if (value != intVal)
                 {
-                    this.dVal = value;
+                    intVal = value;
                     NotifyPropertyChanged();
                 }
+            }
+        }
+
+        public int SensValue
+        {
+            get
+            {
+                return intVal;
             }
         }
 
@@ -182,7 +198,7 @@ namespace DAQ_Sim
         {
             get
             {
-                return this.GetValueString();
+                return GetValueString();
             }
         }
 
@@ -190,30 +206,44 @@ namespace DAQ_Sim
         // Default id of 0
         public Sensor()
         {
-            CreateSensor(0);
+            CreateSensor(0,8);
         }
-        public Sensor(int id)
+        public Sensor(int id, int bitness)
         {
-            CreateSensor(id);
+            CreateSensor(id, bitness);
         }
 
         // Methods
 
-        private void CreateSensor(int id)
+        private void CreateSensor(int id, int bitness)
         {
             sId = id;
-            this.rSenVal = new Random(sId); //TODO: check for range setting of random class
-            this.dVal = 0.0F;
+            rSenVal = new Random(sId); //TODO: check for range setting of random class
+
+            if (bitness > 32)
+                numBits = 32;
+            else
+                numBits = bitness;
+
+            // Math.Pow() function only handles doubles
+            // Iterate to achieve powers of 2
+            maxIntVal = 1;
+            for( int n = 1; n <= numBits; n++)
+                maxIntVal = maxIntVal*2;
+
+            intVal = 0;
         }
 
         // DoSampling()
         // Return the current value of the sensor
         // Header identified. Implementation to be performed in child classes
-        public virtual void DoSampling() { }
+        public void DoSampling() {
+            value = rSenVal.Next(maxIntVal);    // sets random values from 0 to (maxIntVal-1)
+        }
 
         // GetValueString
         // Return the value of the sensor as a string (default)
-        protected virtual String GetValueString() { return dVal.ToString(); }
+        protected virtual String GetValueString() { return SensValue.ToString(); }
 
         // Raise property changed event. Used to provide notification of new value acquisition
         private void NotifyPropertyChanged(String propertyName = "")
@@ -223,26 +253,26 @@ namespace DAQ_Sim
                 PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
             }
         }
+
     }
 
     public class AnalogueSensor : Sensor
     {
         private double minVal;
         private double maxVal;
-        private int numBits;
 
         // Constructor allowing for customized initialization
         // of parameters for the sensor
         // Default parameters for initialization
         // Range=0-10V; Resolution=8 bits
         public AnalogueSensor(int id=0, double min=0, double max=10, int bits=8) :
-            base(id)
+            base(id, bits)
         {
             minVal = min;
             maxVal = max;
-            numBits = bits;
         }
 
+        /*
         // DoSampling()
         // Simulate a new sensor value and return this
         public override void DoSampling()
@@ -253,12 +283,36 @@ namespace DAQ_Sim
 
             this.value = newVal;
         }
+        */
+
+        // SensValue property
+        // Using the built in min and max properties
+        // return the scaled floating point representation
+        // of the integer value in the parent sonsor class
+        public new double SensValue
+        {
+            get
+            {
+                double tempVal;
+
+                // ratio of integer value along the possible range
+                // note that the minimum value is 0
+                tempVal = (double)intVal / (maxIntVal - 1);
+                // apply the ratio to the range of the output
+                tempVal = tempVal * (maxVal - minVal);
+                // add the output minimum offset
+                tempVal += minVal;
+
+                return tempVal;
+            }
+        }
+
 
         // GetValueString()
         // Return the value as a string
         protected override String GetValueString()
         {
-            return this.value.ToString("F3");     // TODO: what does F3 do?
+            return SensValue.ToString("F3");     // TODO: what does F3 do?
         }
     }
 
@@ -267,11 +321,12 @@ namespace DAQ_Sim
         private const string tString = "ON";
         private const string fString = "OFF";
 
-        public DigitalSensor(int id=0) : base(id)
+        public DigitalSensor(int id=0) : base(id,1)
         {
-            this.value = 0;
+            value = 0;
         }
 
+        /*
         // DoSampling()
         // Simulate a new sensor value and return this
         public override void DoSampling()
@@ -279,12 +334,23 @@ namespace DAQ_Sim
             double newVal = rSenVal.NextDouble() < 0.5F ? 0.0F:1.0F;
             this.value = newVal;
         }
+        */
+
+        // SensValue property
+        public new bool SensValue
+        {
+            get
+            {
+                return intVal != 0;
+            }
+        }
+
 
         // GetValueString()
         // Return the value as a string
         protected override String GetValueString()
         {
-            return this.value != 0.0F ? tString:fString;
+            return SensValue ? tString:fString;
         }
     }
 }
