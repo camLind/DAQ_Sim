@@ -57,6 +57,7 @@
     </ApplicationDefinition>
     <Compile Include="DataLogging.cs" />
     <Compile Include="Sensors.cs" />
+    <Compile Include="SignalAnalysis.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
