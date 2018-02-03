@@ -35,10 +35,13 @@ namespace DAQ_Sim
 
         // Overloaded constructor
         // Allowing the window length to be set
-        public MAFilter(string name, int windowSize)
+        public MAFilter(string filterName, int windowSize)
         {
+            name = filterName;
+
             windowSize = windowSize <= 0 ? 10 : windowSize;
             length = windowSize;
+            
             Initialize();
         }
 
@@ -80,6 +83,10 @@ namespace DAQ_Sim
             }
 
             output = valueWindow.Average();
+
+#if displayWindow
+            WriteFilterToConsole();
+#endif
         }
 
         // Method: IncrementActiveIndex

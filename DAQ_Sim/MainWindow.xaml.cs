@@ -24,6 +24,7 @@ namespace DAQ_Sim
     public partial class MainWindow : Window
     {
         DAQSimulator daqSim;
+        MAFilter[] anFilters;
 
         TimeSpan sampleUpdatePeriod;
         DispatcherTimer timeUpdater;
@@ -34,12 +35,24 @@ namespace DAQ_Sim
 
         DataLog logToFile;
 
+        int numAnSensors = 2;
+        int numDiSensors = 5;
+        int anFilterLen = 3;
+
         // Main Window function
         public MainWindow()
         {
             InitializeComponent();
 
-            daqSim = new DAQSimulator(5,3);
+            daqSim = new DAQSimulator(numAnSensors, numDiSensors);
+            anFilters = new MAFilter[numAnSensors];
+
+            for( int i=0; i<numAnSensors; i++ )
+            {
+                string name = "maFilter_" + i.ToString("G2");
+                anFilters[i] = new MAFilter(name, anFilterLen);
+            }
+
             logToFile = new DataLog(',');
 
             sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
@@ -100,6 +113,11 @@ namespace DAQ_Sim
             btnSample.IsEnabled = false;
             daqSim.DoSampleAnalogueSensors();
 
+            for (int i = 0; i < numAnSensors; i++)
+            {
+                anFilters[i].AddValue(daqSim.analogueSensors[i].value);
+            }
+
             samplingTimer.Go();
         }
 
@@ -112,8 +130,13 @@ namespace DAQ_Sim
 
             btnLog.IsEnabled = false;
 
-            foreach (Sensor s in daqSim.analogueSensors)
-                logToFile.BufferEntry(s.valStr);
+            for (int i = 0; i < numAnSensors; i++)
+            {
+                logToFile.BufferEntry(anFilters[i].output.ToString("F3"));
+            }
+
+            //foreach (Sensor s in daqSim.analogueSensors)
+            //    logToFile.BufferEntry(s.valStr);
 
             foreach (Sensor s in daqSim.digitalSensors)
                 logToFile.BufferEntry(s.valStr);
