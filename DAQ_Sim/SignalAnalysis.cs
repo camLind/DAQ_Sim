@@ -1,13 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#define displayWindow
+
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DAQ_Sim
 {
+    //////////////////////////////////////////////////////////////////////////
+    // MAFilter Class
+    // By: Cameron Lindberg
+    // Version: 1.1
+    // Last Update: 2018-02-03
+    //
+    // Version 1.1
+    // - Add filter name for easier identification
+    // - Add debug to console for functionality verification
+    //
+    // Version 1.0
+    // - Write up basic functionality
+    //
+    // Implements a sliding window filter
     class MAFilter
     {
+        private string name;
         private double[] valueWindow;
         private int activeIndex;
         private int length;
@@ -20,17 +33,9 @@ namespace DAQ_Sim
             private set;
         }
 
-        // Default constructor
-        // Default length = 10;
-        public MAFilter()
-        {
-            length = 10;
-            Initialize();
-        }
-
         // Overloaded constructor
         // Allowing the window length to be set
-        public MAFilter(int windowSize)
+        public MAFilter(string name, int windowSize)
         {
             windowSize = windowSize <= 0 ? 10 : windowSize;
             length = windowSize;
@@ -88,6 +93,23 @@ namespace DAQ_Sim
             // Once activeIndex goes beyond the range of the array
             // the variable is reset to 0
             activeIndex = (activeIndex + 1) % length;
+        }
+
+        // Test methods
+
+        // Output window contents to the system console
+        // This allows the internal functionality of the
+        // filter to be verified
+        // Output is a tab delimited line containing
+        // - filter name
+        // - contents
+        // - filtered value
+        private void WriteFilterToConsole()
+        {
+            System.Console.Write(name);
+            for (int i = 0; i < length; i++)
+                System.Console.Write("\t" + valueWindow[i].ToString());
+            System.Console.WriteLine("\t" + output.ToString());
         }
     }
 }
