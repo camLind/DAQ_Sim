@@ -24,7 +24,7 @@ namespace DAQ_Sim
     public partial class MainWindow : Window
     {
         DAQSimulator daqSim;
-        MAFilter[] anFilters;
+        MAFilter[] aiFilters;
 
         TimeSpan sampleUpdatePeriod;
         DispatcherTimer timeUpdater;
@@ -35,22 +35,22 @@ namespace DAQ_Sim
 
         DataLog logToFile;
 
-        int numAnSensors = 2;
+        int numAiSensors = 2;
         int numDiSensors = 5;
-        int anFilterLen = 3;
+        int aiFilterLen = 3;
 
         // Main Window function
         public MainWindow()
         {
             InitializeComponent();
 
-            daqSim = new DAQSimulator(numAnSensors, numDiSensors);
-            anFilters = new MAFilter[numAnSensors];
+            daqSim = new DAQSimulator(numAiSensors, numDiSensors);
+            aiFilters = new MAFilter[numAiSensors];
 
-            for( int i=0; i<numAnSensors; i++ )
+            for( int i=0; i<numAiSensors; i++ )
             {
-                string name = "maFilter_" + i.ToString("G2");
-                anFilters[i] = new MAFilter(name, anFilterLen);
+                string name = "aiFilter_" + i.ToString("G2");
+                aiFilters[i] = new MAFilter(name, aiFilterLen);
             }
 
             logToFile = new DataLog(',');
@@ -113,9 +113,9 @@ namespace DAQ_Sim
             btnSample.IsEnabled = false;
             daqSim.DoSampleAnalogueSensors();
 
-            for (int i = 0; i < numAnSensors; i++)
+            for (int i = 0; i < numAiSensors; i++)
             {
-                anFilters[i].AddValue(daqSim.analogueSensors[i].value);
+                aiFilters[i].AddValue(daqSim.analogueSensors[i].value);
             }
 
             samplingTimer.Go();
@@ -130,9 +130,9 @@ namespace DAQ_Sim
 
             btnLog.IsEnabled = false;
 
-            for (int i = 0; i < numAnSensors; i++)
+            for (int i = 0; i < numAiSensors; i++)
             {
-                logToFile.BufferEntry(anFilters[i].output.ToString("F3"));
+                logToFile.BufferEntry(aiFilters[i].output.ToString("F3"));
             }
 
             //foreach (Sensor s in daqSim.analogueSensors)
