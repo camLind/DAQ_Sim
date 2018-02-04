@@ -164,6 +164,9 @@ namespace CamHelperFunctions
 
         public event EventHandler Ready;    // Event fired when timer has elapsed
 
+        // Properties
+        public TimeSpan Interval { get { return TimeSpan.FromMilliseconds(waitTime); } }
+
         // Constructor
         // timerName: name for the timer identification
         // newWaitTime: time delay for the event to trigger after being started

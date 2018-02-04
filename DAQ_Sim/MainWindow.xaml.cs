@@ -1,22 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 using DataLogging;
 using CamHelperFunctions;
-using System.Collections.Specialized;
-using System.Data;
 
 namespace DAQ_Sim
 {
@@ -25,22 +12,18 @@ namespace DAQ_Sim
     /// </summary>
     public partial class MainWindow : Window
     {
+        
+        // Timer objects
+        DispatcherTimer timeUpdater;
+        ActionWaiter samplingTimer;
+        ActionWaiter loggingTimer;
+
+        // DAQ simulator objects
         DAQSimulator daqSim;
         MAFilter[] aiFilters;
 
-        TimeSpan sampleUpdatePeriod;
-        DispatcherTimer timeUpdater;
-        ActionWaiter samplingTimer;
-
-        TimeSpan logUpdatePeriod;
-        ActionWaiter loggingTimer;
-
+        // Datalogging
         DataLog logToFile;
-        int logEntryCount;
-
-        int aiFilterLen;
-
-        char logDelim;
 
         // Main Window function
         public MainWindow()
@@ -66,7 +49,7 @@ namespace DAQ_Sim
             for( int i=0; i < aiFilters.Length; i++ )
             {
                 string name = "aiFilter_" + i.ToString("G2");
-                aiFilters[i] = new MAFilter(name, aiFilterLen);
+                aiFilters[i] = new MAFilter(name);
             }
             
             dgAnalogueSamples.ItemsSource = daqSim.ai;
@@ -78,6 +61,14 @@ namespace DAQ_Sim
             // Window default state
             btnSample.IsEnabled = true;
             btnLog.IsEnabled = true;
+        }
+
+        //////////////////////////////////////////////////////
+        // Timer event handling
+
+        private void TimeUpdater_Elapsed(object sender, EventArgs e)
+        {
+            tbTimeNow.Text = DateTime.Now.ToString("HH:mm:ss.f");
         }
 
         private void SamplingWaiter_Elapsed(object sender, EventArgs e)
@@ -102,31 +93,33 @@ namespace DAQ_Sim
             }           
         }
 
+        //////////////////////////////////////////////////////
+        // Simulator value sampling
+
         private void PerformSample()
         {
             DateTime timeNow = DateTime.Now;
 
             tbLastSampleTime.Text = timeNow.ToString("HH:mm:ss.f");
-            tbNextSampleTime.Text = timeNow.Add(sampleUpdatePeriod).ToString("HH:mm:ss.f");
+            tbNextSampleTime.Text = timeNow.Add(samplingTimer.Interval).ToString("HH:mm:ss.f");
 
             btnSample.IsEnabled = false;
             daqSim.DoSampleSensors();
 
             for (int i = 0; i < aiFilters.Length; i++)
-            {
                 aiFilters[i].AddValue(daqSim.ai[i].SensValue);
-            }
 
             samplingTimer.Go();
         }
 
+        //////////////////////////////////////////////////////
+        // Datalog functions
         private void LogInitialize()
         {
             logToFile = new DataLog(Config.Charkey("dataLogDelim", ','));
             tbLogPath.Text = logToFile.FilePath;
 
-            logEntryCount = 0;
-            tbLogEntryCount.Text = logEntryCount.ToString();
+            tbLogEntryCount.Text = logToFile.NumEntries.ToString();
 
             logToFile.BufferEntry("Timestamp");
 
@@ -144,7 +137,7 @@ namespace DAQ_Sim
             DateTime timeNow = DateTime.Now;
 
             tbLastLogTime.Text = timeNow.ToString("HH:mm:ss.f");
-            tbNextLogTime.Text = timeNow.Add(logUpdatePeriod).ToString("HH:mm:ss.f");
+            tbNextLogTime.Text = timeNow.Add(loggingTimer.Interval).ToString("HH:mm:ss.f");
 
             btnLog.IsEnabled = false;
 
@@ -156,20 +149,16 @@ namespace DAQ_Sim
 
             if( logToFile.WriteEntry() )
             {
-                logEntryCount++;
-                tbLogEntryCount.Text = logEntryCount.ToString();
+                tbLogEntryCount.Text = logToFile.NumEntries.ToString();
                 loggingTimer.Go();
             } else
             {
-                tbLogEntryCount.Text = logEntryCount.ToString() + " !--ERR--!";
+                tbLogEntryCount.Text = logToFile.NumEntries.ToString() + " !--ERR--!";
             }
         }
 
-        private void TimeUpdater_Elapsed(object sender, EventArgs e)
-        {
-            tbTimeNow.Text = DateTime.Now.ToString("HH:mm:ss.f");
-        }
-
+        //////////////////////////////////////////////////////
+        // User-initiated event handling
         private void btnSample_Click(object sender, RoutedEventArgs e)
         {
             PerformSample();
@@ -182,7 +171,17 @@ namespace DAQ_Sim
 
         private void menuHelpAbout_Click(object sender, RoutedEventArgs e)
         {
+            string caption = "About DAQ Sim";
 
+            string msgText = "DAQ Simulator Program";
+            msgText += "\n\n By: Cameron Lindberg";
+            msgText += "\n Version: 1.0";
+            msgText += "\n\n";
+            msgText += "Developed for completion of 'Assignment #1: C# coding Assignment'";
+            msgText += " for the course IIA1314 Object-Oriented Analysis, Design and Programming";
+            msgText += " at the University College of Southeast Norway. 2018.";
+
+            MessageBox.Show(msgText, caption, MessageBoxButton.OK);
         }
 
         private void menuFileExit_Click(object sender, RoutedEventArgs e)
