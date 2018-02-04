@@ -14,6 +14,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using DataLogging;
+using CamHelperFunctions;
+using System.Collections.Specialized;
 using System.Data;
 
 namespace DAQ_Sim
@@ -34,53 +36,50 @@ namespace DAQ_Sim
         ActionWaiter loggingTimer;
 
         DataLog logToFile;
+        int logEntryCount;
 
-        int numAiSensors = 2;
-        int numDiSensors = 5;
-        int aiFilterLen = 3;
+        int aiFilterLen;
+
+        char logDelim;
 
         // Main Window function
         public MainWindow()
         {
             InitializeComponent();
 
-            daqSim = new DAQSimulator(numAiSensors, numDiSensors);
-            aiFilters = new MAFilter[numAiSensors];
+            // Initialize timers
+            timeUpdater = new DispatcherTimer();
+            timeUpdater.Interval = Config.TimeSecondsKey("sysTimeUpdateInterval", 0.5F);
+            timeUpdater.Tick += new EventHandler(TimeUpdater_Elapsed);
+            timeUpdater.Start();
 
-            for( int i=0; i<numAiSensors; i++ )
+            samplingTimer = new ActionWaiter("SampleTimer", Config.TimeSecondsKey("sampleTime", 1.0F));
+            samplingTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
+
+            loggingTimer = new ActionWaiter("LoggingTimer", Config.TimeSecondsKey("loggingTime", 1.0F));
+            loggingTimer.Ready += new EventHandler(LoggingTimer_Elapsed);
+
+            // Initialize DAQ simulator and filtering objects
+            daqSim = new DAQSimulator();
+            aiFilters = new MAFilter[daqSim.AIDevCount];
+
+            for( int i=0; i < aiFilters.Length; i++ )
             {
                 string name = "aiFilter_" + i.ToString("G2");
                 aiFilters[i] = new MAFilter(name, aiFilterLen);
             }
-
-            logToFile = new DataLog(',');
-
-            sampleUpdatePeriod = new TimeSpan(0, 0, 0, 5, 700);
-            logUpdatePeriod = new TimeSpan(0, 0, 0, 10, 0);
-
-            timeUpdater = new DispatcherTimer();
-            timeUpdater.Interval = new TimeSpan(0, 0, 0, 0, 200);
-            timeUpdater.Tick += new EventHandler(TimeUpdater_Elapsed);
-
-            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
             
-            timeUpdater.Start();
+            dgAnalogueSamples.ItemsSource = daqSim.ai;
+            dgDigitalSamples.ItemsSource = daqSim.di;
 
-            samplingTimer = new ActionWaiter(sampleUpdatePeriod);
-            samplingTimer.Ready += new EventHandler(SamplingWaiter_Elapsed);
-            samplingTimer.Go();
+            // Setup data logging
+            LogInitialize();
 
-            loggingTimer = new ActionWaiter(logUpdatePeriod);
-            loggingTimer.Ready += new EventHandler(LoggingTimer_Elapsed);
-            loggingTimer.Go();
-
-            dgAnalogueSamples.ItemsSource = daqSim.analogueSensors;
-            dgDigitalSamples.ItemsSource = daqSim.digitalSensors;
-
-            PerformSample();
-            PerformLogWrite();
+            // Window default state
+            btnSample.IsEnabled = true;
+            btnLog.IsEnabled = true;
         }
-        
+
         private void SamplingWaiter_Elapsed(object sender, EventArgs e)
         {
             EnableControl(btnSample);
@@ -107,51 +106,68 @@ namespace DAQ_Sim
         {
             DateTime timeNow = DateTime.Now;
 
-            tbLastSampleTime.Text = timeNow.ToString("hh:mm:ss.f");
-            tbNextSampleTime.Text = timeNow.Add(sampleUpdatePeriod).ToString("hh:mm:ss.f");
+            tbLastSampleTime.Text = timeNow.ToString("HH:mm:ss.f");
+            tbNextSampleTime.Text = timeNow.Add(sampleUpdatePeriod).ToString("HH:mm:ss.f");
 
             btnSample.IsEnabled = false;
-            daqSim.DoSampleAnalogueSensors();
+            daqSim.DoSampleSensors();
 
-            for (int i = 0; i < numAiSensors; i++)
+            for (int i = 0; i < aiFilters.Length; i++)
             {
-                aiFilters[i].AddValue(daqSim.analogueSensors[i].value);
+                aiFilters[i].AddValue(daqSim.ai[i].SensValue);
             }
 
             samplingTimer.Go();
+        }
+
+        private void LogInitialize()
+        {
+            logToFile = new DataLog(Config.Charkey("dataLogDelim", ','));
+            tbLogPath.Text = logToFile.FilePath;
+
+            logEntryCount = 0;
+            tbLogEntryCount.Text = logEntryCount.ToString();
+
+            logToFile.BufferEntry("Timestamp");
+
+            foreach (Sensor s in daqSim.ai)
+                logToFile.BufferEntry(s.name);
+
+            foreach (Sensor s in daqSim.di)
+                logToFile.BufferEntry(s.name);
+
+            logToFile.WriteEntry(tStamp: false, incrCtr: false);
         }
 
         private void PerformLogWrite()
         {
             DateTime timeNow = DateTime.Now;
 
-            tbLastLogTime.Text = timeNow.ToString("hh:mm:ss.f");
-            tbNextLogTime.Text = timeNow.Add(logUpdatePeriod).ToString("hh:mm:ss.f");
+            tbLastLogTime.Text = timeNow.ToString("HH:mm:ss.f");
+            tbNextLogTime.Text = timeNow.Add(logUpdatePeriod).ToString("HH:mm:ss.f");
 
             btnLog.IsEnabled = false;
 
-            for (int i = 0; i < numAiSensors; i++)
-            {
+            for (int i = 0; i < aiFilters.Length; i++)
                 logToFile.BufferEntry(aiFilters[i].output.ToString("F3"));
-            }
 
-            //foreach (Sensor s in daqSim.analogueSensors)
-            //    logToFile.BufferEntry(s.valStr);
-
-            foreach (Sensor s in daqSim.digitalSensors)
+            foreach (Sensor s in daqSim.di)
                 logToFile.BufferEntry(s.valStr);
 
             if( logToFile.WriteEntry() )
-                // update number entries
-                // else
-                // indicate error
-            
-            loggingTimer.Go();
+            {
+                logEntryCount++;
+                tbLogEntryCount.Text = logEntryCount.ToString();
+                loggingTimer.Go();
+            } else
+            {
+                tbLogEntryCount.Text = logEntryCount.ToString() + " !--ERR--!";
+            }
         }
 
         private void TimeUpdater_Elapsed(object sender, EventArgs e)
         {
-            tbTimeNow.Text = DateTime.Now.ToString("hh:mm:ss.f");
+            tbTimeNow.Text = DateTime.Now.ToString("HH:mm:ss.f");
         }
 
         private void btnSample_Click(object sender, RoutedEventArgs e)

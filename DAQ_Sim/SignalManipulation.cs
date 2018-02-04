@@ -1,6 +1,7 @@
 ﻿#define displayWindow
 
 using System.Linq;
+using CamHelperFunctions;
 
 namespace DAQ_Sim
 {
@@ -33,14 +34,23 @@ namespace DAQ_Sim
             private set;
         }
 
+        public MAFilter(string filterName)
+        {
+            name = filterName;
+
+            length = Config.IntKey("aIFilterLen", 1);
+            length = length <= 0 ? 10 : length;
+
+            Initialize();
+        }
+
         // Overloaded constructor
         // Allowing the window length to be set
         public MAFilter(string filterName, int windowSize)
         {
             name = filterName;
 
-            windowSize = windowSize <= 0 ? 10 : windowSize;
-            length = windowSize;
+            length = windowSize <= 0 ? 10 : windowSize;
             
             Initialize();
         }

@@ -1,62 +1,71 @@
-﻿using System;
+﻿#define DebugLogActions
+
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
+using System.Text;
 
 namespace DataLogging
 {
     public class DataLog
     {
-        private string filePath;
+        // Attributes
+        private string dir;
         private string fileName;
         private bool logIsOK;
-
         private char delim;
 
         List<string> entries;
 
+        // Properties
+        public int NumEntries{ get; private set; }
+
+        public string FilePath { get { return Path.Combine(dir, fileName);  } }
+
+        // Constructor
         public DataLog(char newDelim = ',')
         {
             SetFileName();
             SetPath();
 
             entries = new List<string>();
+            NumEntries = 0;
 
             try
             {
                 StreamWriter fStream;
 
-                fStream = File.CreateText(Path.Combine(filePath, fileName));
+                fStream = File.CreateText(FilePath);
                 fStream.Close();
-
-                //Write Header
 
                 delim = newDelim;
 
                 logIsOK = true;
+#if DebugLogActions
+                Console.WriteLine("Logfile created: " + FilePath);
+#endif
             } catch (IOException e)
             {
                 logIsOK = false;
             }
         }
 
+        // Methods
         private void SetFileName()
         {
             DateTime timeNow = DateTime.Now;
 
             fileName = "DataLog_";
-            fileName += timeNow.ToString("yyyy-MM-dd_hh-mm-ss");
+            fileName += timeNow.ToString("yyyy-MM-dd_HH-mm-ss");
             fileName += ".csv";
         }
 
         private void SetPath()
         {
-            filePath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            filePath = Path.Combine(filePath, "LogData");
-            if (!Directory.Exists(filePath))
-                Directory.CreateDirectory(filePath);
+            dir = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            dir = Path.Combine(dir, "LogData");
+            if (!Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
         }
 
         public void BufferEntry(string newEntry)
@@ -64,39 +73,63 @@ namespace DataLogging
             entries.Add(newEntry);
         }
 
-        public bool WriteEntry()
+        public bool WriteEntry(bool tStamp=true, bool incrCtr=true)
         {
             bool success = false;
 
+            StringBuilder logLine;
+
             if (logIsOK)
             {
-                try
+                
+                logLine = new StringBuilder();
+
+                if( tStamp )
+                    logLine.Append(DateTime.Now.ToLongTimeString());
+
+                foreach (string s in entries)
                 {
-                    StreamWriter fStream;
+                    if(logLine.Length>0)
+                        logLine.Append(delim);
 
-                    fStream = File.AppendText(Path.Combine(filePath, fileName));
-                    fStream.Write(DateTime.Now.ToLongTimeString());
-
-                    foreach (string s in entries)
-                    {
-                        fStream.Write(delim);
-                        fStream.Write(s);
-                    }
-
-                    fStream.WriteLine();
-                    fStream.Flush();
-                    fStream.Close();
-
-                    success = true;
+                    logLine.Append(s);
                 }
-                catch (Exception e)
-                {
-                    success = false;
-                    Console.WriteLine(e.Message);
-                }
+
+                success = WriteToFile(logLine.ToString());
+
+                if( success && incrCtr )
+                    NumEntries++;               
             }
 
             entries.Clear();
+
+            return success;
+        }
+
+        private bool WriteToFile(string textToWrite)
+        {
+
+            StreamWriter fStream;
+            bool success = false;
+
+            try
+            {
+                fStream = File.AppendText(Path.Combine(dir, fileName));
+                fStream.WriteLine(textToWrite);
+                fStream.Flush();
+                fStream.Close();
+                success = true;
+#if DebugLogActions
+                Console.WriteLine("Log write: " + textToWrite);
+#endif
+            }
+            catch (Exception e)
+            {
+                success = false;
+#if DebugLogActions
+                Console.WriteLine(e.Message);
+#endif
+            }
 
             return success;
         }

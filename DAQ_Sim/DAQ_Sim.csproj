@@ -36,7 +36,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -55,6 +58,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="DAQSim_AboutBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DAQSim_AboutBox.Designer.cs">
+      <DependentUpon>DAQSim_AboutBox.cs</DependentUpon>
+    </Compile>
+    <Compile Include="HelperClasses.cs" />
     <Compile Include="DataLogging.cs" />
     <Compile Include="Sensors.cs" />
     <Compile Include="SignalManipulation.cs" />
@@ -85,6 +95,9 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <EmbeddedResource Include="DAQSim_AboutBox.resx">
+      <DependentUpon>DAQSim_AboutBox.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>

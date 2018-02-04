@@ -1,121 +1,10 @@
-﻿# define ConsoleOutput      // Flag for enabling debug output to the system console
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Threading;
+using CamHelperFunctions;
 
 namespace DAQ_Sim
 {
-    //////////////////////////////////////////////////////////////////////////
-    // ActionWaiter
-    // By: Cameron Lindberg
-    // Version: 1.1
-    // Last Update: 2018-02-02
-    //
-    // Version 1.1
-    // - added check that timer was active before restart
-    // - add thread name
-    // - additional code description and tidy-up
-    //
-    // Version 1.0
-    // - achieve functionality
-    //
-    // Used as an interval timer to raise an event after a preset period
-    // of time has elapsed. The timer is restarted using the Go() command
-    //
-    // The timer is executed in a separate thread and the delay is based
-    // on using the sleep() command.
-    public class ActionWaiter
-    {
-        private string name;    // internal identification
-        private bool runMe;     // flag to allow timer thread to be closed
-
-        private int waitTime;   // time delay for the timer
-        private bool running;   // flag recording if the timer is currently running
-        private Thread myThread;    // Thread object for the timer to run
-        private AutoResetEvent waitToStart; // Synchronisation mechanism to enable restarting of timer
-        private EventArgs e;
-        
-        public event EventHandler Ready;    // Event fired when timer has elapsed
-
-        // Constructor
-        // timerName: name for the timer identification
-        // newWaitTime: time delay for the event to trigger after being started
-        public ActionWaiter(string timerName, TimeSpan newWaitTime)
-        {
-            runMe = true;
-            name = timerName;
-            running = false;
-
-            waitToStart = new AutoResetEvent(false);
-            waitTime = (int)newWaitTime.TotalMilliseconds;
-            myThread = new Thread(new ThreadStart(this.executeMe));
-            myThread.Start();
-        }
-
-        // Timer implementation
-        // This is done in a separate thread and uses the Sleep function.
-        private void executeMe()
-        {
-            try
-            {
-                while (runMe)   // Continue in the thread while runMe is true
-                {
-#if ConsoleOutput   // For debugging - notify when the timer started
-                    Console.WriteLine(name + ": Timer started: " + DateTime.Now.ToLongTimeString());
-#endif
-                    running = true;
-                    Thread.Sleep(waitTime);     // wait for elapsed time
-                    running = false;
-
-#if ConsoleOutput   // For debugging - notify when the timer stopped
-                    Console.WriteLine(name + ": Timer ticked: " + DateTime.Now.ToLongTimeString());
-#endif
-                    OnReadySet(new EventArgs());    // fire timer ticked event
-
-                    waitToStart.WaitOne();          // wait for restart signal
-                }
-            } catch (ThreadInterruptedException e)
-            {
-                Console.WriteLine(name + ": Sample timer interrupted.");
-            }
-        }
-
-        // Initiate the next interval countdown
-        // Return true if the timer could be started
-        public bool Go()
-        {
-            bool success = false;
-
-            if ( runMe && !running)
-            {
-                waitToStart.Set();
-                success = true;
-            }
-
-            return success;
-        }
-
-        // Stop the timer, closing the associated thread
-        public void Stop()
-        {
-            runMe = false;
-            waitToStart.Set();
-            if( myThread.ThreadState == ThreadState.WaitSleepJoin)
-                myThread.Interrupt();
-        }
-
-        // Raise flag ready event.
-        private void OnReadySet(EventArgs e)
-        {
-            if (Ready != null)
-            {
-                Ready(this, e);
-            }
-        }
-    }   // END ActionWaiter class
-
     //////////////////////////////////////////////////////////////////////////
     // DAQ Simulator
     // By: Cameron Lindberg
@@ -134,48 +23,72 @@ namespace DAQ_Sim
     {
         // Collection of analogue sensor devices
         // Publicly visible but cannot be changed outside the class
-        public List<AnalogueSensor> analogueSensors { get; private set; }
+        public List<AnalogueSensor> ai { get; private set; }
         // Collection of digital sensor devices
         // Publicly visible but cannot be changed outside the class
-        public List<DigitalSensor> digitalSensors { get; private set; }
+        public List<DigitalSensor> di { get; private set; }
 
         private int numAnalogueDevices;     // total number of analogue sensors
         private int numDigitalDevices;      // total number of digital sensors
 
         // configuration for the analogue sensors
         private const int anSensIDStart = 0;
-        private const double anSensMin = -1;
-        private const double anSensMax = 1; 
-        private const int anSensBits = 10;
+        private double aiSensMin = -1;
+        private double aiSensMax = 1; 
+        private int aiSensBits = 10;
 
         // configuration for the digital sensors
         private const int diSensIDStart = 20;
 
+        public int AIDevCount { get { return numAnalogueDevices; } }
+        public int DIDevCount { get { return numDigitalDevices; } }
+
+        // Default constructor for DAQ simulator
+        // If available, use app.config settings for initialization
+        public DAQSimulator()
+        {
+            numAnalogueDevices = Config.IntKey("numAIDevs", 1);
+            numDigitalDevices = Config.IntKey("numDIDevs", 1);
+
+            aiSensMin = Config.DblKey("minAIVolt", 0.0F);
+            aiSensMax = Config.DblKey("maxAIVolt", 10.0F);
+            aiSensBits = Config.IntKey("numBitsAI", 8);
+
+            CreateSensors();
+        }
+
         // Constructor for DAQ Simulator
         public DAQSimulator(int numADevs, int numDDevs)
         {
-            // Initialize the analogue sensors
             numAnalogueDevices = numADevs;
-            analogueSensors = new List<AnalogueSensor>();          
-            for( int i=0; i<numAnalogueDevices; i++ )
-                analogueSensors.Add(
-                    new AnalogueSensor(anSensIDStart + i, anSensMin, anSensMax, anSensBits));
+            numDigitalDevices = numDDevs;
+
+            CreateSensors();
+        }
+
+        // Initialize the sensors for simulation
+        private void CreateSensors()
+        {
+            // Initialize the analogue sensors
+            ai = new List<AnalogueSensor>();
+            for (int i = 0; i < numAnalogueDevices; i++)
+                ai.Add(
+                    new AnalogueSensor(anSensIDStart + i, aiSensMin, aiSensMax, aiSensBits));
 
             // Initialise the digital sensors
-            numDigitalDevices = numDDevs;
-            digitalSensors = new List<DigitalSensor>();
-            for ( int i=0; i<numDigitalDevices; i++)
-                digitalSensors.Add(
+            di = new List<DigitalSensor>();
+            for (int i = 0; i < numDigitalDevices; i++)
+                di.Add(
                     new DigitalSensor(diSensIDStart + i));
         }
 
         // DoSampleSensors: Simulate sampling operation of all sensors
         public void DoSampleSensors()
         {
-            foreach(AnalogueSensor sensor in analogueSensors)
+            foreach(AnalogueSensor sensor in ai)
                 sensor.DoSampling();
 
-            foreach(DigitalSensor sensor in digitalSensors)
+            foreach(DigitalSensor sensor in di)
                 sensor.DoSampling();
         }
 
@@ -210,6 +123,7 @@ namespace DAQ_Sim
         // sensor class parameters
         private Random rSenVal;
 
+        //protected string name;
         protected int intVal;
         protected int numBits;
         protected int maxIntVal;
@@ -224,7 +138,7 @@ namespace DAQ_Sim
         // Provides value in the raw integer form
         // Setting the internal value via this property initiates
         // the event that the sensor has changed.
-        public int value
+        public int rawValue
         {
             get { return intVal; }
             protected set
@@ -251,34 +165,57 @@ namespace DAQ_Sim
             get { return GetValueString(); }
         }
 
+        public string name
+        {
+            get;
+            protected set; 
+        }
+
+        // Default Constructor
+        public Sensor()
+        {
+            id = -1;
+            numBits = 1;
+            name = "sensor";
+            InitializeSensor();
+        }
+
         // Constructor
         // Define the id and bit resolution
-        public Sensor(int newId, int bitness)
+        public Sensor(int newId, int bitness, string namePrefix="_")
         {
             id = newId;
+            numBits = bitness;
+            name = namePrefix + id.ToString("G2");
+            InitializeSensor();
+        }
+
+        // Methods
+        
+        // General initialization
+        // Allows initialization from overloaded constructors
+        // without duplicating code
+        public void InitializeSensor()
+        {
             rSenVal = new Random(id); //TODO: check for range setting of random class
 
-            if (bitness > 32)
+            if (numBits > 32)
                 numBits = 32;
-            else
-                numBits = bitness;
 
             // Math.Pow() function only handles doubles
             // Iterate to achieve powers of 2
-            maxIntVal = 1;
+            maxIntVal = 1;  // Start at 2^0
             for (int n = 1; n <= numBits; n++)
                 maxIntVal = maxIntVal * 2;
 
             intVal = 0;
         }
 
-        // Methods
-        
         // DoSampling()
         // Update the current value of the sensor
         // Since this is a simulator, use random value
         public void DoSampling() {
-            value = rSenVal.Next(maxIntVal);    // sets random values from 0 to (maxIntVal-1)
+            rawValue = rSenVal.Next(maxIntVal);    // sets random values from 0 to (maxIntVal-1)
         }
 
         // GetValueString
@@ -324,7 +261,7 @@ namespace DAQ_Sim
         // Default parameters for initialization
         // Range=0-10V; Resolution=8 bits
         public AnalogueSensor(int id=0, double min=0, double max=10, int bits=8) :
-            base(id, bits)
+            base(id, bits, "ai_")
         {
             minVal = min;
             maxVal = max;
@@ -382,7 +319,7 @@ namespace DAQ_Sim
         private const string tString = "ON";
         private const string fString = "OFF";
 
-        public DigitalSensor(int id=0) : base(id,1)
+        public DigitalSensor(int id=0) : base(id,1,"di_")
         {
             // nothing to do here
         }
